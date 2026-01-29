@@ -18,3 +18,7 @@ services:
       interval: 10s
       timeout: 10s
       retries: 120
+  api:
+    build: .
+    ports:
+      - "80:80"

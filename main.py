@@ -1,6 +1,8 @@
 from typing import Any
 from datasets import load_dataset
 from elasticsearch import Elasticsearch, helpers
+from typing import Union
+
 
 ds = load_dataset("SZTAKI-HLT/HunSum-2-abstractive", split="test")
 
@@ -67,5 +69,18 @@ def main():
 
 # def add(a: Number, b: Number) -> float:
 #    return float(a + b)
+
+
+def search_title(query: str) -> list[dict[str, Any]]:
+    es: Elasticsearch = Elasticsearch("http://localhost:9200")
+    result = es.search(
+        index="test-index",
+        query={"match": {"title": query}},
+    )
+    hits = []
+    for hit in result["hits"]["hits"]:
+        hits.append(hit["_source"])
+    return hits
+
 
 main()
