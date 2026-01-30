@@ -36,7 +36,19 @@ def main():
                         ],
                     }
                 },
-            }
+            },
+            "mappings": {
+                "properties": {
+                    "uuid": {"type": "keyword"},
+                    "title": {"type": "text"},
+                    "lead": {"type": "text"},
+                    "article": {"type": "text"},
+                    "domain": {"type": "keyword"},
+                    "url": {"type": "text"},
+                    "date_of_creation": {"type": "text"},
+                    "tags": {"type": "keyword"},
+                }
+            },
         },
         "mappings": {
             "properties": {
@@ -70,16 +82,4 @@ def main():
 #    return float(a + b)
 
 
-def search_title(query: str) -> list[dict[str, Any]]:
-    es: Elasticsearch = Elasticsearch("http://localhost:9200")
-    result = es.search(
-        index="test-index",
-        query={"match": {"title": query}},
-    )
-    hits = []
-    for hit in result["hits"]["hits"]:
-        hits.append(hit["_source"])
-    return hits
-
-
-main()
+# main()
