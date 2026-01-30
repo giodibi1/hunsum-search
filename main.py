@@ -3,7 +3,6 @@ from datasets import load_dataset
 from elasticsearch import Elasticsearch, helpers
 from typing import Union
 
-
 ds = load_dataset("SZTAKI-HLT/HunSum-2-abstractive", split="test")
 
 
