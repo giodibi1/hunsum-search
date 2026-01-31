@@ -1,7 +1,7 @@
 from typing import Any, Union
 from elasticsearch import Elasticsearch
 from fastapi import FastAPI
-from adapters.search_backend.elastic_search_impl import test
+from adapters.search_backend.search_impl import test
 
 # FastApi teszt
 app = FastAPI()
