@@ -1,6 +1,7 @@
 import click
 import random
 import textwrap
+from dateutil import parser
 from tabulate import tabulate
 import adapters.search_backend.search_impl as search_impl
 
@@ -15,11 +16,49 @@ def wrap(text, width=50):
 
 
 @click.command()
-@click.argument("text")
-@click.option("-k", is_flag=True, help="Search by keyword")
-def search_text(text, k):
-    click.echo(f"Searching for text: {text}")
-    out = search_impl.HunsumSearchImplementation().search(text)
+@click.argument("query")
+@click.option("-page", help="Go to page number", type=int)
+@click.option("-sort", multiple=True, help="Sort by field: 'field:[asc, desc]'")
+@click.option(
+    "-filter",
+    multiple=True,
+    help="Filter by keyword, date or range: 'keyword', 'date:[gt, gte, lt, lte]', 'date1:date2'",
+)
+def search_text(query, page, sort, filter):
+    body = search_impl.HunsumSearchImplementation().search_body(query)
+    hunsearch = search_impl.HunsumSearchImplementation()
+    params: dict[str, any] = {
+        "index": "test-index",
+        "query": body,
+        "size": 10,
+        "from_": 0,
+    }
+
+    if page:
+        params.update(hunsearch.param_page(page_number=page))
+
+    if sort:
+        try:
+            params["sort"] = hunsearch.param_sort(list(sort))
+        except search_impl.HunsumSearchInterface.SearchFormatException as e:
+            raise click.ClickException(e.message)
+
+    if filter:
+        try:
+            body["bool"][
+                "filter"
+            ] = search_impl.HunsumSearchImplementation().param_filter(filter=filter)
+        except search_impl.HunsumSearchInterface.SearchFormatException as e:
+            raise click.ClickException(e.message)
+
+    out = hunsearch.search(params)
+
+    if page and page > out["total"] // out["pageSize"] + 1:
+        params.update(
+            hunsearch.param_page(page_number=out["total"] // out["pageSize"] + 1)
+        )
+        out = hunsearch.search(params)
+
     table = [
         [
             item.get("id"),
@@ -27,9 +66,16 @@ def search_text(text, k):
             wrap(item["url"], 60),
             item.get("date_of_creation"),
         ]
-        for item in out
+        for item in out["hits"]
     ]
 
+    click.echo(
+        click.style(
+            f"Page: {out['from'] // out['pageSize'] + 1} of {out['total'] // out['pageSize'] + 1}",
+            fg="green",
+            bold=True,
+        )
+    )
     click.echo(
         tabulate(
             table,
@@ -37,59 +83,17 @@ def search_text(text, k):
             tablefmt="fancy_grid",
         )
     )
-    if k:
-        click.echo("Searching by keyword")
-
-
-def _generate_output() -> list[int]:
-    n = 102  # Number of random numbers
-    li = random.sample(range(1, 110), n)
-    return li
 
 
 @click.command()
-def paging():
-    li = _generate_output()
-    page_size = 10
-    page_total = (len(li) + page_size - 1) // page_size
-    page_number = 1
-    start_index = (page_number - 1) * page_size
-    end_index = start_index + page_size
-    page = li[start_index:end_index]
+@click.argument("name")
+@click.option("-settings", help="Index settings", type=str)
+def init_index(name, settings):
+    search_impl.HunsumSearchImplementation().init_index(name, settings)
     click.echo(
-        click.style(f"Page: {page_number} of {page_total}", fg="green", bold=True)
+        click.style(f"Index '{name}' initialized successfully.", fg="green", bold=True)
     )
-    click.echo(f"Page {page_number}: {page}")
-
-    while True:
-        next_page = click.prompt(
-            "n = next | p = previous | pagenumber | q = quit", type=str
-        )
-        if next_page.lower() == "n" and page_number < page_total:
-            page_number += 1
-        elif next_page.lower() == "p" and page_number > 1:
-            page_number -= 1
-            if page_number < 1:
-                page_number = 1
-        elif (
-            next_page.isdigit() and int(next_page) <= page_total and int(next_page) >= 1
-        ):
-            page_number = int(next_page)
-        elif next_page.lower() == "q":
-            break
-        else:
-            continue
-
-        start_index = (page_number - 1) * page_size
-        end_index = start_index + page_size
-        page = li[start_index:end_index]
-
-        click.clear()
-        click.echo(
-            click.style(f"Page: {page_number} of {page_total}", fg="green", bold=True)
-        )
-        click.echo(f"Page {page_number}: {page}")
 
 
 search.add_command(search_text)
-search.add_command(paging)
+search.add_command(init_index)

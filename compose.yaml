@@ -22,12 +22,12 @@ services:
     build: .
     ports:
       - "80:80"
-  kibana:
-    image: docker.elastic.co/kibana/kibana:9.2.4
-    ports:
-      - "5601:5601"
-    volumes:
-      - ./kibana.yml:/usr/share/kibana/config/kibana.yml
-    environment:
-      SERVER_NAME: kibana.example.org
-      ELASTICSEARCH_HOSTS: '["http://elastic1:9200"]'
+#  kibana:
+#    image: docker.elastic.co/kibana/kibana:9.2.4
+#    ports:
+#      - "5601:5601"
+#    volumes:
+#      - ./kibana.yml:/usr/share/kibana/config/kibana.yml
+#    environment:
+#      SERVER_NAME: kibana.example.org
+#      ELASTICSEARCH_HOSTS: '["http://elastic1:9200"]'

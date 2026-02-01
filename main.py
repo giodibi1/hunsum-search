@@ -45,7 +45,10 @@ def main():
                     "article": {"type": "text"},
                     "domain": {"type": "keyword"},
                     "url": {"type": "text"},
-                    "date_of_creation": {"type": "text"},
+                    "date_of_creation": {
+                        "type": "date",
+                        "format": "date_optional_time",
+                    },
                     "tags": {"type": "keyword"},
                 }
             },
