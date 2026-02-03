@@ -4,10 +4,10 @@ version = "0.1.0"
 description = "Project for HunSum2Abstractive documents searching and indexing."
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = ["click", "fastapi", "uvicorn", "elasticsearch", "datasets", "black", "flake8", "pytest", "tabulate"]
+dependencies = ["click", "fastapi", "uvicorn", "elasticsearch", "datasets", "black", "flake8", "pytest", "tabulate", "pydantic"]
 
 [project.scripts]
 search = "cli.search_cli:search"
 
 [tool.setuptools]
-packages = ["cli", "data", "routers", "adapters"]
+packages = ["cli", "data", "routers", "adapters", "schemas"]

@@ -1,12 +1,13 @@
 from typing import Any
-from elasticsearch import Elasticsearch
+from elasticsearch import Elasticsearch, helpers
 from dateutil import parser
 import re
 from .search_interface import *
+from datasets import load_dataset
 
 
 class HunsumSearchImplementation(HunsumSearchInterface):
-    es = Elasticsearch("http://localhost:9200")
+    es = Elasticsearch("http://elastic1:9200")
     SEARCHFIELDS = ["title", "lead", "article", "date_of_creation"]
     DEFAULTINDEXBODY: dict[str, Any] = {
         "settings": {
@@ -59,9 +60,23 @@ class HunsumSearchImplementation(HunsumSearchInterface):
         },
     }
 
-    def init_index(self, name: str, settings: dict = DEFAULTINDEXBODY):
+    def init_index(self, name: str, settings: dict = DEFAULTINDEXBODY) -> bool:
         if not self.es.indices.exists(index=name):
             self.es.indices.create(index=name, body=settings)
+            ds = load_dataset("SZTAKI-HLT/HunSum-2-abstractive", split="test")
+            helpers.bulk(self.es, ds, index=name)
+            return True
+        return False
+
+    def del_index(self, name: str) -> bool:
+        if self.es.indices.exists(index=name):
+            self.es.indices.delete(index=name)
+            return True
+        return False
+
+    def upload_doc(self, index_name: str, doc: document_schema.Document) -> bool:
+        res = self.es.index(index=index_name, document=doc)
+        return res["result"] == "created" or res["result"] == "updated"
 
     def date_format_validator(self, date_text: str) -> bool:
         try:
@@ -157,8 +172,7 @@ class HunsumSearchImplementation(HunsumSearchInterface):
         return filterVar
 
     def search(self, params: dict[str, any]) -> list[dict[str, Any]]:
-        es: Elasticsearch = Elasticsearch("http://localhost:9200")
-        result = es.search(**params)
+        result = self.es.search(**params)
         hits = {
             "total": result["hits"]["total"]["value"],
             "pageSize": params["size"],

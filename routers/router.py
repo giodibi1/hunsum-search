@@ -1,22 +1,23 @@
 from typing import Any, Union
 from elasticsearch import Elasticsearch
 from fastapi import FastAPI
-from adapters.search_backend.search_impl import test
+from pydantic import BaseModel
+import adapters.search_backend.search_impl as search_impl
+from schemas import document_schema
 
 # FastApi teszt
 app = FastAPI()
 
 
-def search_title(query: str) -> list[dict[str, Any]]:
-    es: Elasticsearch = Elasticsearch("http://elastic1:9200")
-    result = es.search(
-        index="test-index",
-        query={"match": {"title": query}},
-    )
-    hits = []
-    for hit in result["hits"]["hits"]:
-        hits.append(hit["_source"])
-    return hits
+def search_title(index_name: str, query: str):
+    hunsearch = search_impl.HunsumSearchImplementation()
+    params: dict[str, Any] = {
+        "index": index_name,
+        "query": search_impl.HunsumSearchImplementation().search_body(query),
+        "size": 10,
+        "from_": 0,
+    }
+    return hunsearch.search(params)
 
 
 @app.get("/")
@@ -25,10 +26,15 @@ def read_root() -> dict[str, str]:
 
 
 @app.get("/search")
-def read_item(q: str) -> dict[str, Union[str, list[dict[str, Any]]]]:
-    return {"results": search_title(q)}
+def read_item(index: str, query: str) -> dict[str, Any]:
+    return {"results": search_title(index, query)}
 
 
-@app.get("/test")
-def test_call() -> dict[str, str]:
-    return {"results": test()}
+@app.post("/upload_doc/")
+async def create_doc(index_name: str, doc: document_schema.Document):
+    res = search_impl.HunsumSearchImplementation().upload_doc(
+        index_name, doc.model_dump(mode="json")
+    )
+    if res == False:
+        return {"status": "Document upload failed"}
+    return doc
